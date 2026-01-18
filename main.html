@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard Executivo - Captação</title>
+
+  <!-- Tailwind -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body { font-family: 'Inter', sans-serif; background:#f3f4f6; }
+
+    .loading-state{display:flex;justify-content:center;align-items:center;height:200px;font-size:1.05rem;color:#6b7280;}
+    .card{background:#fff;border-radius:0.75rem;padding:1.5rem;box-shadow:0 4px 6px -1px rgba(0,0,0,.1),0 2px 4px -1px rgba(0,0,0,.06);transition:.2s;}
+    .card:hover{transform:translateY(-2px);box-shadow:0 10px 15px -3px rgba(0,0,0,.1),0 4px 6px -2px rgba(0,0,0,.05);}
+    .kpi-title{font-size:.8rem;font-weight:600;color:#4b5563;text-transform:uppercase;letter-spacing:.04em;}
+    .kpi-value{font-size:2rem;font-weight:800;color:#111827;line-height:1.1;}
+    .kpi-sub{font-size:.95rem;font-weight:600;color:#6b7280;}
+    .filter{background:#fff;border:1px solid #d1d5db;border-radius:.6rem;padding:.55rem .75rem;font-weight:600;color:#374151;}
+    .btn{padding:.55rem .9rem;border-radius:.6rem;font-weight:700;border:1px solid #d1d5db;background:#fff;color:#111827;transition:.15s;}
+    .btn:hover{background:#f9fafb;}
+    .btn-primary{background:#111827;color:#fff;border-color:#111827;}
+    .btn-primary:hover{background:#0b1220;}
+    table{border-collapse:collapse;width:100%;}
+    th,td{padding:.65rem .6rem;border-bottom:1px solid #e5e7eb;text-align:left;font-size:.92rem;}
+    th{color:#374151;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;}
+    .pill{display:inline-flex;align-items:center;padding:.2rem .55rem;border-radius:999px;font-size:.78rem;font-weight:700;border:1px solid #e5e7eb;color:#374151;background:#f9fafb;}
+  </style>
+</head>
+
+<body class="p-4 md:p-8">
+  <div class="max-w-7xl mx-auto">
+
+    <!-- Header -->
+    <header class="mb-6 flex justify-between items-center gap-4">
+      <div>
+        <h1 class="text-3xl font-extrabold text-gray-900">Dashboard Executivo - Captação</h1>
+        <p class="text-lg text-gray-600">Visão consolidada e detalhada (Bruto x Líquido)</p>
+        <p class="text-sm text-gray-500 mt-2">Última atualização: <span id="last-updated">--</span></p>
+      </div>
+      <div class="flex items-center gap-3">
+        <!-- Troque por sua logo -->
+        <div class="h-14 w-14 rounded-xl bg-gray-900 text-white flex items-center justify-center font-extrabold">BR</div>
+      </div>
+    </header>
+
+    <!-- Alert URL -->
+    <div id="url-alert" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 p-4 rounded-lg mb-6 hidden" role="alert">
+      <p class="font-extrabold">Ação necessária</p>
+      <p>Cole a URL do seu Web App (Apps Script) na variável <code class="font-bold">APPS_SCRIPT_URL</code>.</p>
+    </div>
+
+    <!-- Loading / Error -->
+    <div id="loading" class="loading-state">Carregando dados da planilha…</div>
+    <div id="error" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg mb-6 hidden" role="alert">
+      <p class="font-extrabold">Erro ao carregar</p>
+      <p id="error-message"></p>
+    </div>
+
+    <main id="content" class="hidden">
+
+      <!-- Filters -->
+      <section class="card mb-6">
+        <div class="flex flex-col lg:flex-row gap-3 lg:items-end lg:justify-between">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 w-full">
+            <div>
+              <label class="text-xs font-bold text-gray-600">MÊS</label>
+              <select id="f-mes" class="filter w-full"></select>
+            </div>
+            <div>
+              <label class="text-xs font-bold text-gray-600">LOJA</label>
+              <select id="f-loja" class="filter w-full"></select>
+            </div>
+            <div>
+              <label class="text-xs font-bold text-gray-600">CAPTADORA</label>
+              <select id="f-captadora" class="filter w-full"></select>
+            </div>
+            <div>
+              <label class="text-xs font-bold text-gray-600">ORIGEM</label>
+              <select id="f-origem" class="filter w-full"></select>
+            </div>
+            <div>
+              <label class="text-xs font-bold text-gray-600">BUSCA (cliente/consultor/detalhes)</label>
+              <input id="f-q" class="filter w-full" placeholder="Ex: Lacerda, Jurupis, Lead..." />
+            </div>
+          </div>
+
+          <div class="flex gap-2">
+            <button class="btn btn-primary" onclick="applyFilters()">Aplicar</button>
+            <button class="btn" onclick="resetFilters()">Limpar</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- KPIs -->
+      <section class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <div class="card">
+          <div class="kpi-title">Total Bruto</div>
+          <div id="kpi-bruto" class="kpi-value">R$ 0,00</div>
+          <div class="kpi-sub">Somatório do consolidado</div>
+        </div>
+
+        <div class="card">
+          <div class="kpi-title">Total Líquido</div>
+          <div id="kpi-liquido" class="kpi-value">R$ 0,00</div>
+          <div class="kpi-sub">Somatório do consolidado</div>
+        </div>
+
+        <div class="card">
+          <div class="kpi-title">Diferença (Bruto - Líquido)</div>
+          <div id="kpi-delta" class="kpi-value">R$ 0,00</div>
+          <div id="kpi-delta-sub" class="kpi-sub">Impacto de descontos/ajustes</div>
+        </div>
+
+        <div class="card">
+          <div class="kpi-title">% Líquido sobre Bruto</div>
+          <div id="kpi-pct" class="kpi-value">0%</div>
+          <div class="kpi-sub">Eficiência (líquido/bruto)</div>
+        </div>
+      </section>
+
+      <!-- Charts -->
+      <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div class="card">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-lg font-extrabold text-gray-900">Evolução por Mês</h3>
+            <span class="pill">Bruto x Líquido</span>
+          </div>
+          <div class="w-full h-80"><canvas id="chartMes"></canvas></div>
+        </div>
+
+        <div class="card">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-lg font-extrabold text-gray-900">Composição por Origem</h3>
+            <span class="pill">Bruto</span>
+          </div>
+          <div class="w-full h-80"><canvas id="chartOrigem"></canvas></div>
+        </div>
+      </section>
+
+      <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <div class="card">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-lg font-extrabold text-gray-900">Top Captadoras</h3>
+            <span class="pill">Bruto</span>
+          </div>
+          <div class="w-full h-80"><canvas id="chartTop"></canvas></div>
+        </div>
+
+        <div class="card">
+          <div class="flex items-center justify-between mb-2">
+            <h3 class="text-lg font-extrabold text-gray-900">Distribuição por Loja</h3>
+            <span class="pill">Bruto x Líquido</span>
+          </div>
+          <div class="w-full h-80"><canvas id="chartLoja"></canvas></div>
+        </div>
+      </section>
+
+      <!-- Details -->
+      <section class="card">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
+          <div>
+            <h3 class="text-lg font-extrabold text-gray-900">Detalhamento (Base)</h3>
+            <p class="text-sm text-gray-600">Mostra linhas da aba BASE_DADOS com paginação.</p>
+          </div>
+          <div class="flex gap-2">
+            <button class="btn" onclick="prevPage()">Anterior</button>
+            <button class="btn" onclick="nextPage()">Próxima</button>
+          </div>
+        </div>
+
+        <div class="overflow-auto">
+          <table>
+            <thead>
+              <tr>
+                <th>Captadora</th>
+                <th>Loja</th>
+                <th>Mês</th>
+                <th>Data</th>
+                <th>Cliente</th>
+                <th>Origem</th>
+                <th>Consultor</th>
+                <th>Bruto</th>
+                <th>Líquido</th>
+                <th>Detalhes</th>
+              </tr>
+            </thead>
+            <tbody id="detailsBody"></tbody>
+          </table>
+        </div>
+
+        <div class="mt-3 text-sm text-gray-600">
+          <span id="detailsInfo">--</span>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+<script>
+  // ==========================================================
+  // COLE A URL DO SEU APPS SCRIPT (WEB APP) AQUI
+  // ==========================================================
+  const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxiYMcI1jv9Lna52BDVGjFyBCXRoKKX3OB79cuxirO_Mah5Cqy397EONAJDQmFn5dJimQ/exec';
+  // ==========================================================
+
+  // Charts instances
+  let chartMes, chartOrigem, chartTop, chartLoja;
+
+  // Pagination
+  let detailsOffset = 0;
+  const detailsLimit = 200;
+
+  // Meta
+  let meta = null;
+
+  function qs() {
+    const mes = document.getElementById('f-mes').value;
+    const loja = document.getElementById('f-loja').value;
+    const captadora = document.getElementById('f-captadora').value;
+    const origem = document.getElementById('f-origem').value;
+    const q = document.getElementById('f-q').value.trim();
+
+    const p = new URLSearchParams();
+    if (mes && mes !== 'todas') p.set('mes', mes);
+    if (loja && loja !== 'todas') p.set('loja', loja);
+    if (captadora && captadora !== 'todas') p.set('captadora', captadora);
+    if (origem && origem !== 'todas') p.set('origem', origem);
+    if (q) p.set('q', q);
+    return p;
+  }
+
+  function formatBRL(v) {
+    const n = Number(v || 0);
+    return n.toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
+  }
+  function formatPct(v) {
+    const n = Number(v || 0) * 100;
+    return `${n.toFixed(0)}%`;
+  }
+
+  async function fetchJSON(url) {
+    const res = await fetch(url);
+    if (!res.ok) throw new Error(`Falha HTTP: ${res.status}`);
+    const data = await res.json();
+    if (data.status !== 'ok') throw new Error(data.message || 'Erro no Apps Script');
+    return data;
+  }
+
+  async function init() {
+    const urlAlert = document.getElementById('url-alert');
+    const loading = document.getElementById('loading');
+    const error = document.getElementById('error');
+    const content = document.getElementById('content');
+
+    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes('COLE_A_URL')) {
+      urlAlert.classList.remove('hidden');
+      loading.classList.add('hidden');
+      return;
+    }
+
+    try {
+      urlAlert.classList.add('hidden');
+      loading.classList.remove('hidden');
+      error.classList.add('hidden');
+      content.classList.add('hidden');
+
+      // Meta (listas)
+      const metaData = await fetchJSON(`${APPS_SCRIPT_URL}?action=meta`);
+      meta = metaData.meta;
+
+      fillSelect('f-mes', meta.meses);
+      fillSelect('f-loja', meta.lojas);
+      fillSelect('f-captadora', meta.captadoras);
+      fillSelect('f-origem', meta.origens);
+
+      // Load default
+      await loadOverview();
+      await loadDetails(true);
+
+      document.getElementById('last-updated').textContent = new Date().toLocaleString('pt-BR');
+      content.classList.remove('hidden');
+
+    } catch (e) {
+      document.getElementById('error-message').textContent = e.message;
+      error.classList.remove('hidden');
+    } finally {
+      loading.classList.add('hidden');
+    }
+  }
+
+  function fillSelect(id, items) {
+    const el = document.getElementById(id);
+    el.innerHTML = '';
+    const optAll = document.createElement('option');
+    optAll.value = 'todas';
+    optAll.textContent = 'TODAS';
+    el.appendChild(optAll);
+
+    (items || []).forEach(v => {
+      const o = document.createElement('option');
+      o.value = v;
+      o.textContent = v;
+      el.appendChild(o);
+    });
+  }
+
+  async function applyFilters() {
+    detailsOffset = 0;
+    await loadOverview();
+    await loadDetails(true);
+  }
+
+  async function resetFilters() {
+    document.getElementById('f-mes').value = 'todas';
+    document.getElementById('f-loja').value = 'todas';
+    document.getElementById('f-captadora').value = 'todas';
+    document.getElementById('f-origem').value = 'todas';
+    document.getElementById('f-q').value = '';
+    detailsOffset = 0;
+    await loadOverview();
+    await loadDetails(true);
+  }
+
+  async function loadOverview() {
+    const p = qs();
+    const data = await fetchJSON(`${APPS_SCRIPT_URL}?action=overview&${p.toString()}`);
+
+    // KPIs
+    document.getElementById('kpi-bruto').textContent = formatBRL(data.kpis.totalBruto);
+    document.getElementById('kpi-liquido').textContent = formatBRL(data.kpis.totalLiquido);
+
+    document.getElementById('kpi-delta').textContent = formatBRL(data.kpis.deltaBrutoLiquido);
+    document.getElementById('kpi-delta').className = `kpi-value ${Number(data.kpis.deltaBrutoLiquido) >= 0 ? 'text-gray-900' : 'text-red-600'}`;
+
+    document.getElementById('kpi-pct').textContent = formatPct(data.kpis.pctLiquidoSobreBruto);
+
+    // Charts
+    renderChartMes(data.charts.porMes);
+    renderChartOrigem(data.charts.porOrigem);
+    renderChartTop(data.charts.topCaptadoras);
+    renderChartLoja(data.charts.porLoja);
+  }
+
+  async function loadDetails(reset=false) {
+    const p = qs();
+    p.set('limit', detailsLimit);
+    p.set('offset', detailsOffset);
+
+    const data = await fetchJSON(`${APPS_SCRIPT_URL}?action=details&${p.toString()}`);
+
+    const tbody = document.getElementById('detailsBody');
+    tbody.innerHTML = '';
+
+    data.page.rows.forEach(r => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${escapeHtml(r.captadora)}</td>
+        <td>${escapeHtml(r.loja)}</td>
+        <td>${escapeHtml(r.mes)}</td>
+        <td>${escapeHtml(r.data)}</td>
+        <td>${escapeHtml(r.cliente)}</td>
+        <td>${escapeHtml(r.origem)}</td>
+        <td>${escapeHtml(r.consultor)}</td>
+        <td class="font-bold">${formatBRL(r.valor_bruto)}</td>
+        <td class="font-bold">${formatBRL(r.valor_liquido)}</td>
+        <td>${escapeHtml(r.detalhes)}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+
+    const total = data.page.totalRows;
+    const from = total === 0 ? 0 : (data.page.offset + 1);
+    const to = Math.min(data.page.offset + data.page.limit, total);
+
+    document.getElementById('detailsInfo').textContent =
+      `Exibindo ${from}-${to} de ${total} linhas | Totais (filtro atual): Bruto ${formatBRL(data.totals.totalBruto)} | Líquido ${formatBRL(data.totals.totalLiquido)}`;
+  }
+
+  function prevPage() {
+    detailsOffset = Math.max(0, detailsOffset - detailsLimit);
+    loadDetails();
+  }
+  function nextPage() {
+    detailsOffset = detailsOffset + detailsLimit;
+    loadDetails();
+  }
+
+  function renderChartMes(rows) {
+    const labels = (rows || []).map(r => r.label);
+    const bruto = (rows || []).map(r => Number(r.total_valor_bruto || 0));
+    const liquido = (rows || []).map(r => Number(r.total_valor_liquido || 0));
+
+    const ctx = document.getElementById('chartMes').getContext('2d');
+    if (chartMes) chartMes.destroy();
+    chartMes = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels,
+        datasets: [
+          { label: 'Bruto', data: bruto },
+          { label: 'Líquido', data: liquido }
+        ]
+      },
+      options: { responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true } } }
+    });
+  }
+
+  function renderChartOrigem(rows) {
+    const labels = (rows || []).map(r => r.label);
+    const bruto = (rows || []).map(r => Number(r.total_valor_bruto || 0));
+
+    const ctx = document.getElementById('chartOrigem').getContext('2d');
+    if (chartOrigem) chartOrigem.destroy();
+    chartOrigem = new Chart(ctx, {
+      type: 'doughnut',
+      data: { labels, datasets: [{ label:'Bruto', data: bruto }] },
+      options: { responsive:true, maintainAspectRatio:false }
+    });
+  }
+
+  function renderChartTop(rows) {
+    const labels = (rows || []).map(r => r.label);
+    const bruto = (rows || []).map(r => Number(r.total_valor_bruto || 0));
+
+    const ctx = document.getElementById('chartTop').getContext('2d');
+    if (chartTop) chartTop.destroy();
+    chartTop = new Chart(ctx, {
+      type: 'bar',
+      data: { labels, datasets: [{ label:'Bruto', data: bruto }] },
+      options: { responsive:true, maintainAspectRatio:false, indexAxis:'y', scales:{ x:{ beginAtZero:true } } }
+    });
+  }
+
+  function renderChartLoja(rows) {
+    const labels = (rows || []).map(r => r.label);
+    const bruto = (rows || []).map(r => Number(r.total_valor_bruto || 0));
+    const liquido = (rows || []).map(r => Number(r.total_valor_liquido || 0));
+
+    const ctx = document.getElementById('chartLoja').getContext('2d');
+    if (chartLoja) chartLoja.destroy();
+    chartLoja = new Chart(ctx, {
+      type: 'bar',
+      data: { labels, datasets: [{ label:'Bruto', data: bruto }, { label:'Líquido', data: liquido }] },
+      options: { responsive:true, maintainAspectRatio:false, scales:{ y:{ beginAtZero:true } } }
+    });
+  }
+
+  function escapeHtml(s) {
+    return String(s ?? '')
+      .replaceAll('&','&amp;')
+      .replaceAll('<','&lt;')
+      .replaceAll('>','&gt;')
+      .replaceAll('"','&quot;')
+      .replaceAll("'","&#039;");
+  }
+
+  document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
