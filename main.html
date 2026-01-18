@@ -11,9 +11,6 @@
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
-  <!-- Google Identity Services (Login) -->
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-
   <!-- jsPDF + AutoTable (Export PDF) -->
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.31/dist/jspdf.plugin.autotable.min.js"></script>
@@ -37,8 +34,6 @@
     th,td{padding:.65rem .6rem;border-bottom:1px solid #e5e7eb;text-align:left;font-size:.92rem;}
     th{color:#374151;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;}
     .pill{display:inline-flex;align-items:center;padding:.2rem .55rem;border-radius:999px;font-size:.78rem;font-weight:700;border:1px solid #e5e7eb;color:#374151;background:#f9fafb;}
-
-    /* Badges / Links */
     .link{color:#111827;text-decoration:underline;font-weight:800;}
     .link:hover{color:#0b1220;}
   </style>
@@ -54,47 +49,10 @@
         <p class="text-lg text-gray-600">Visão consolidada e detalhada (Bruto x Líquido)</p>
         <p class="text-sm text-gray-500 mt-2">Última atualização: <span id="last-updated">--</span></p>
       </div>
-
       <div class="flex items-center gap-3">
-        <!-- Troque por sua logo -->
         <div class="h-14 w-14 rounded-xl bg-gray-900 text-white flex items-center justify-center font-extrabold">BR</div>
-
-        <!-- Badge do usuário (após login) -->
-        <div id="user-badge" class="hidden items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2">
-          <img id="user-pic" class="h-8 w-8 rounded-full hidden" alt="Foto do usuário"/>
-          <div class="leading-tight">
-            <div id="user-name" class="text-sm font-bold text-gray-900">Usuário</div>
-            <div id="user-email" class="text-xs text-gray-500"></div>
-          </div>
-          <button class="btn" onclick="logout()">Sair</button>
-        </div>
       </div>
     </header>
-
-    <!-- Login box -->
-    <section id="login-box" class="card mb-6">
-      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <div class="kpi-title">Acesso</div>
-          <div class="text-lg font-extrabold text-gray-900">Faça login para ver os dados</div>
-          <div class="text-sm text-gray-600 mt-1">Autenticação via Google (permitidos conforme allowlist no Apps Script).</div>
-        </div>
-
-        <div class="flex flex-col items-start gap-2">
-          <!-- IMPORTANTE:
-               1) Cole seu GOOGLE CLIENT ID no data-client_id
-               2) Adicione o domínio do GitHub Pages em Authorized JavaScript origins no Google Cloud Console
-          -->
-          <div id="g_id_onload"
-               data-client_id="357633292720-erunom0m1nc8glhui1noe76phsmonedm.apps.googleusercontent.com"
-               data-callback="onGoogleLogin"
-               data-auto_prompt="false">
-          </div>
-          <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline" data-text="signin_with"></div>
-          <div class="text-xs text-gray-500">Se aparecer “Acesso negado”, revise a lista de e-mails permitidos no Apps Script.</div>
-        </div>
-      </div>
-    </section>
 
     <!-- Alert URL -->
     <div id="url-alert" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 p-4 rounded-lg mb-6 hidden" role="alert">
@@ -103,7 +61,7 @@
     </div>
 
     <!-- Loading / Error -->
-    <div id="loading" class="loading-state hidden">Carregando dados da planilha…</div>
+    <div id="loading" class="loading-state">Carregando dados da planilha…</div>
     <div id="error" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg mb-6 hidden" role="alert">
       <p class="font-extrabold">Erro ao carregar</p>
       <p id="error-message"></p>
@@ -292,9 +250,6 @@
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxiYMcI1jv9Lna52BDVGjFyBCXRoKKX3OB79cuxirO_Mah5Cqy397EONAJDQmFn5dJimQ/exec';
   // ==========================================================
 
-  // Token (Google ID Token)
-  let ID_TOKEN = "";
-
   // Charts instances
   let chartMes, chartOrigem, chartTop, chartLoja;
 
@@ -335,100 +290,41 @@
   }
 
   async function fetchJSON(url) {
-    if (!ID_TOKEN) throw new Error('Faça login para acessar o dashboard.');
-
-    const u = new URL(url);
-    u.searchParams.set('id_token', ID_TOKEN);
-
-    const res = await fetch(u.toString());
+    const res = await fetch(url);
     if (!res.ok) throw new Error(`Falha HTTP: ${res.status}`);
     const data = await res.json();
     if (data.status !== 'ok') throw new Error(data.message || 'Erro no Apps Script');
     return data;
   }
 
-  // ==========================
-  // LOGIN (GIS)
-  // ==========================
-  function onGoogleLogin(response) {
-    ID_TOKEN = response.credential || "";
-
-    // Esconde login box assim que pegar token
-    document.getElementById('login-box').classList.add('hidden');
-
-    // Carrega o dashboard
-    carregarDashboard();
-  }
-
-  function logout() {
-    ID_TOKEN = "";
-    currentOverview = null;
-    meta = null;
-
-    // UI
-    document.getElementById('content').classList.add('hidden');
-    document.getElementById('login-box').classList.remove('hidden');
-
-    const badge = document.getElementById('user-badge');
-    badge.classList.add('hidden');
-    badge.classList.remove('flex');
-
-    // Opcional: limpar tabelas
-    document.getElementById('rankingBody').innerHTML = '';
-    document.getElementById('detailsBody').innerHTML = '';
-  }
-
-  // ==========================
-  // INIT / LOAD
-  // ==========================
-  async function carregarDashboard() {
+  async function init() {
     const urlAlert = document.getElementById('url-alert');
     const loading = document.getElementById('loading');
     const error = document.getElementById('error');
-    const errorMsg = document.getElementById('error-message');
     const content = document.getElementById('content');
 
     if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes('COLE_A_URL')) {
       urlAlert.classList.remove('hidden');
+      loading.classList.add('hidden');
       return;
     }
-    urlAlert.classList.add('hidden');
 
     try {
+      urlAlert.classList.add('hidden');
       loading.classList.remove('hidden');
       error.classList.add('hidden');
       content.classList.add('hidden');
 
-      // META
+      // Meta (listas)
       const metaData = await fetchJSON(`${APPS_SCRIPT_URL}?action=meta`);
       meta = metaData.meta;
 
-      // Badge
-      if (metaData.user) {
-        const badge = document.getElementById('user-badge');
-        badge.classList.remove('hidden');
-        badge.classList.add('flex');
-
-        document.getElementById('user-name').textContent = metaData.user.name || 'Usuário';
-        document.getElementById('user-email').textContent = metaData.user.email || '';
-
-        const pic = document.getElementById('user-pic');
-        if (metaData.user.picture) {
-          pic.src = metaData.user.picture;
-          pic.classList.remove('hidden');
-        } else {
-          pic.classList.add('hidden');
-        }
-      }
-
-      // Filtros
       fillSelect('f-mes', meta.meses);
       fillSelect('f-loja', meta.lojas);
       fillSelect('f-captadora', meta.captadoras);
       fillSelect('f-origem', meta.origens);
 
-      // Carregamento padrão
-      detailsOffset = 0;
+      // Load default
       await loadOverview();
       await loadDetails(true);
 
@@ -436,10 +332,8 @@
       content.classList.remove('hidden');
 
     } catch (e) {
-      errorMsg.textContent = e.message;
+      document.getElementById('error-message').textContent = e.message;
       error.classList.remove('hidden');
-      // Se erro por auth, volta login box
-      document.getElementById('login-box').classList.remove('hidden');
     } finally {
       loading.classList.add('hidden');
     }
@@ -479,9 +373,6 @@
     await loadDetails(true);
   }
 
-  // ==========================
-  // OVERVIEW + RANKINGS
-  // ==========================
   async function loadOverview() {
     const p = qs();
     const data = await fetchJSON(`${APPS_SCRIPT_URL}?action=overview&${p.toString()}`);
@@ -500,7 +391,7 @@
     // Charts
     renderChartMes(data.charts.porMes);
     renderChartOrigem(data.charts.porOrigem);
-    renderChartTop(data.charts.topCaptadoras); // com drilldown
+    renderChartTop(data.charts.topCaptadoras); // drilldown
     renderChartLoja(data.charts.porLoja);
 
     // Rankings
@@ -564,21 +455,13 @@
   }
 
   async function drilldownCaptadora(nome) {
-    // seta filtro captadora e aplica
-    const sel = document.getElementById('f-captadora');
-    sel.value = nome;
-
+    document.getElementById('f-captadora').value = nome;
     detailsOffset = 0;
     await loadOverview();
     await loadDetails(true);
-
-    // rola até o detalhe
     document.getElementById('detailsBody').scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
-  // ==========================
-  // DETAILS
-  // ==========================
   async function loadDetails(reset=false) {
     const p = qs();
     p.set('limit', detailsLimit);
@@ -623,9 +506,6 @@
     loadDetails();
   }
 
-  // ==========================
-  // CHARTS
-  // ==========================
   function renderChartMes(rows) {
     const labels = (rows || []).map(r => r.label);
     const bruto = (rows || []).map(r => Number(r.total_valor_bruto || 0));
@@ -697,11 +577,8 @@
     });
   }
 
-  // ==========================
-  // EXPORTS (CSV/PDF)
-  // ==========================
+  // EXPORTS
   async function exportCSV() {
-    // Busca até 1000 linhas do filtro atual (ajuste se precisar)
     const p = qs();
     p.set('limit', 1000);
     p.set('offset', 0);
@@ -765,9 +642,6 @@
     doc.save(`captacao_export_${new Date().toISOString().slice(0,10)}.pdf`);
   }
 
-  // ==========================
-  // UTIL
-  // ==========================
   function escapeHtml(s) {
     return String(s ?? '')
       .replaceAll('&','&amp;')
@@ -776,22 +650,11 @@
       .replaceAll('"','&quot;')
       .replaceAll("'","&#039;");
   }
-
-  // Para injetar string em onclick sem quebrar aspas
   function escapeJsString(s) {
     return String(s ?? '').replaceAll('\\', '\\\\').replaceAll("'", "\\'");
   }
 
-  // Ao abrir a página, NÃO carrega dados sem login.
-  // Apenas verifica URL e mostra aviso se faltando.
-  document.addEventListener('DOMContentLoaded', () => {
-    const urlAlert = document.getElementById('url-alert');
-    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes('COLE_A_URL')) {
-      urlAlert.classList.remove('hidden');
-    } else {
-      urlAlert.classList.add('hidden');
-    }
-  });
+  document.addEventListener('DOMContentLoaded', init);
 </script>
 </body>
 </html>
