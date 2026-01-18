@@ -7,8 +7,16 @@
 
   <!-- Tailwind -->
   <script src="https://cdn.tailwindcss.com"></script>
+
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Google Identity Services (Login) -->
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+
+  <!-- jsPDF + AutoTable (Export PDF) -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.31/dist/jspdf.plugin.autotable.min.js"></script>
 
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
@@ -29,6 +37,10 @@
     th,td{padding:.65rem .6rem;border-bottom:1px solid #e5e7eb;text-align:left;font-size:.92rem;}
     th{color:#374151;font-size:.78rem;text-transform:uppercase;letter-spacing:.05em;}
     .pill{display:inline-flex;align-items:center;padding:.2rem .55rem;border-radius:999px;font-size:.78rem;font-weight:700;border:1px solid #e5e7eb;color:#374151;background:#f9fafb;}
+
+    /* Badges / Links */
+    .link{color:#111827;text-decoration:underline;font-weight:800;}
+    .link:hover{color:#0b1220;}
   </style>
 </head>
 
@@ -42,11 +54,47 @@
         <p class="text-lg text-gray-600">Visão consolidada e detalhada (Bruto x Líquido)</p>
         <p class="text-sm text-gray-500 mt-2">Última atualização: <span id="last-updated">--</span></p>
       </div>
+
       <div class="flex items-center gap-3">
         <!-- Troque por sua logo -->
         <div class="h-14 w-14 rounded-xl bg-gray-900 text-white flex items-center justify-center font-extrabold">BR</div>
+
+        <!-- Badge do usuário (após login) -->
+        <div id="user-badge" class="hidden items-center gap-2 bg-white border border-gray-200 rounded-xl px-3 py-2">
+          <img id="user-pic" class="h-8 w-8 rounded-full hidden" alt="Foto do usuário"/>
+          <div class="leading-tight">
+            <div id="user-name" class="text-sm font-bold text-gray-900">Usuário</div>
+            <div id="user-email" class="text-xs text-gray-500"></div>
+          </div>
+          <button class="btn" onclick="logout()">Sair</button>
+        </div>
       </div>
     </header>
+
+    <!-- Login box -->
+    <section id="login-box" class="card mb-6">
+      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <div class="kpi-title">Acesso</div>
+          <div class="text-lg font-extrabold text-gray-900">Faça login para ver os dados</div>
+          <div class="text-sm text-gray-600 mt-1">Autenticação via Google (permitidos conforme allowlist no Apps Script).</div>
+        </div>
+
+        <div class="flex flex-col items-start gap-2">
+          <!-- IMPORTANTE:
+               1) Cole seu GOOGLE CLIENT ID no data-client_id
+               2) Adicione o domínio do GitHub Pages em Authorized JavaScript origins no Google Cloud Console
+          -->
+          <div id="g_id_onload"
+               data-client_id="COLE_SEU_GOOGLE_CLIENT_ID_AQUI"
+               data-callback="onGoogleLogin"
+               data-auto_prompt="false">
+          </div>
+          <div class="g_id_signin" data-type="standard" data-size="large" data-theme="outline" data-text="signin_with"></div>
+          <div class="text-xs text-gray-500">Se aparecer “Acesso negado”, revise a lista de e-mails permitidos no Apps Script.</div>
+        </div>
+      </div>
+    </section>
 
     <!-- Alert URL -->
     <div id="url-alert" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 p-4 rounded-lg mb-6 hidden" role="alert">
@@ -55,7 +103,7 @@
     </div>
 
     <!-- Loading / Error -->
-    <div id="loading" class="loading-state">Carregando dados da planilha…</div>
+    <div id="loading" class="loading-state hidden">Carregando dados da planilha…</div>
     <div id="error" class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg mb-6 hidden" role="alert">
       <p class="font-extrabold">Erro ao carregar</p>
       <p id="error-message"></p>
@@ -89,9 +137,11 @@
             </div>
           </div>
 
-          <div class="flex gap-2">
+          <div class="flex gap-2 flex-wrap">
             <button class="btn btn-primary" onclick="applyFilters()">Aplicar</button>
             <button class="btn" onclick="resetFilters()">Limpar</button>
+            <button class="btn" onclick="exportCSV()">Exportar CSV (filtro)</button>
+            <button class="btn" onclick="exportPDF()">Exportar PDF (filtro)</button>
           </div>
         </div>
       </section>
@@ -146,9 +196,10 @@
         <div class="card">
           <div class="flex items-center justify-between mb-2">
             <h3 class="text-lg font-extrabold text-gray-900">Top Captadoras</h3>
-            <span class="pill">Bruto</span>
+            <span class="pill">Clique para detalhar</span>
           </div>
           <div class="w-full h-80"><canvas id="chartTop"></canvas></div>
+          <div class="text-xs text-gray-500 mt-2">Dica: clique em uma captadora no gráfico para filtrar automaticamente.</div>
         </div>
 
         <div class="card">
@@ -160,6 +211,39 @@
         </div>
       </section>
 
+      <!-- Rankings -->
+      <section class="card mb-6">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3 mb-3">
+          <div>
+            <h3 class="text-lg font-extrabold text-gray-900">Rankings</h3>
+            <p class="text-sm text-gray-600">Clique no nome para drilldown (filtra e abre o detalhe).</p>
+          </div>
+          <div class="flex gap-2 flex-wrap">
+            <button id="tab-mes" class="btn btn-primary" onclick="setRankingTab('mes')">Ranking do mês</button>
+            <button id="tab-geral" class="btn" onclick="setRankingTab('geral')">Ranking geral</button>
+          </div>
+        </div>
+
+        <div class="overflow-auto">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Captadora</th>
+                <th>Bruto</th>
+                <th>Líquido</th>
+                <th>% Líquido</th>
+              </tr>
+            </thead>
+            <tbody id="rankingBody"></tbody>
+          </table>
+        </div>
+
+        <div class="mt-2 text-sm text-gray-600">
+          <span id="rankingInfo">--</span>
+        </div>
+      </section>
+
       <!-- Details -->
       <section class="card">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-2 mb-4">
@@ -167,7 +251,7 @@
             <h3 class="text-lg font-extrabold text-gray-900">Detalhamento (Base)</h3>
             <p class="text-sm text-gray-600">Mostra linhas da aba BASE_DADOS com paginação.</p>
           </div>
-          <div class="flex gap-2">
+          <div class="flex gap-2 flex-wrap">
             <button class="btn" onclick="prevPage()">Anterior</button>
             <button class="btn" onclick="nextPage()">Próxima</button>
           </div>
@@ -203,10 +287,13 @@
 
 <script>
   // ==========================================================
-  // COLE A URL DO SEU APPS SCRIPT (WEB APP) AQUI
+  // URL DO SEU APPS SCRIPT (WEB APP)
   // ==========================================================
   const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxiYMcI1jv9Lna52BDVGjFyBCXRoKKX3OB79cuxirO_Mah5Cqy397EONAJDQmFn5dJimQ/exec';
   // ==========================================================
+
+  // Token (Google ID Token)
+  let ID_TOKEN = "";
 
   // Charts instances
   let chartMes, chartOrigem, chartTop, chartLoja;
@@ -215,15 +302,19 @@
   let detailsOffset = 0;
   const detailsLimit = 200;
 
-  // Meta
+  // Meta + Overview
   let meta = null;
+  let currentOverview = null;
+
+  // Ranking tabs
+  let rankingTab = "mes";
 
   function qs() {
-    const mes = document.getElementById('f-mes').value;
-    const loja = document.getElementById('f-loja').value;
-    const captadora = document.getElementById('f-captadora').value;
-    const origem = document.getElementById('f-origem').value;
-    const q = document.getElementById('f-q').value.trim();
+    const mes = document.getElementById('f-mes')?.value || 'todas';
+    const loja = document.getElementById('f-loja')?.value || 'todas';
+    const captadora = document.getElementById('f-captadora')?.value || 'todas';
+    const origem = document.getElementById('f-origem')?.value || 'todas';
+    const q = (document.getElementById('f-q')?.value || '').trim();
 
     const p = new URLSearchParams();
     if (mes && mes !== 'todas') p.set('mes', mes);
@@ -238,47 +329,106 @@
     const n = Number(v || 0);
     return n.toLocaleString('pt-BR', { style:'currency', currency:'BRL' });
   }
-  function formatPct(v) {
+  function formatPctRatio(v) {
     const n = Number(v || 0) * 100;
     return `${n.toFixed(0)}%`;
   }
 
   async function fetchJSON(url) {
-    const res = await fetch(url);
+    if (!ID_TOKEN) throw new Error('Faça login para acessar o dashboard.');
+
+    const u = new URL(url);
+    u.searchParams.set('id_token', ID_TOKEN);
+
+    const res = await fetch(u.toString());
     if (!res.ok) throw new Error(`Falha HTTP: ${res.status}`);
     const data = await res.json();
     if (data.status !== 'ok') throw new Error(data.message || 'Erro no Apps Script');
     return data;
   }
 
-  async function init() {
+  // ==========================
+  // LOGIN (GIS)
+  // ==========================
+  function onGoogleLogin(response) {
+    ID_TOKEN = response.credential || "";
+
+    // Esconde login box assim que pegar token
+    document.getElementById('login-box').classList.add('hidden');
+
+    // Carrega o dashboard
+    carregarDashboard();
+  }
+
+  function logout() {
+    ID_TOKEN = "";
+    currentOverview = null;
+    meta = null;
+
+    // UI
+    document.getElementById('content').classList.add('hidden');
+    document.getElementById('login-box').classList.remove('hidden');
+
+    const badge = document.getElementById('user-badge');
+    badge.classList.add('hidden');
+    badge.classList.remove('flex');
+
+    // Opcional: limpar tabelas
+    document.getElementById('rankingBody').innerHTML = '';
+    document.getElementById('detailsBody').innerHTML = '';
+  }
+
+  // ==========================
+  // INIT / LOAD
+  // ==========================
+  async function carregarDashboard() {
     const urlAlert = document.getElementById('url-alert');
     const loading = document.getElementById('loading');
     const error = document.getElementById('error');
+    const errorMsg = document.getElementById('error-message');
     const content = document.getElementById('content');
 
     if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes('COLE_A_URL')) {
       urlAlert.classList.remove('hidden');
-      loading.classList.add('hidden');
       return;
     }
+    urlAlert.classList.add('hidden');
 
     try {
-      urlAlert.classList.add('hidden');
       loading.classList.remove('hidden');
       error.classList.add('hidden');
       content.classList.add('hidden');
 
-      // Meta (listas)
+      // META
       const metaData = await fetchJSON(`${APPS_SCRIPT_URL}?action=meta`);
       meta = metaData.meta;
 
+      // Badge
+      if (metaData.user) {
+        const badge = document.getElementById('user-badge');
+        badge.classList.remove('hidden');
+        badge.classList.add('flex');
+
+        document.getElementById('user-name').textContent = metaData.user.name || 'Usuário';
+        document.getElementById('user-email').textContent = metaData.user.email || '';
+
+        const pic = document.getElementById('user-pic');
+        if (metaData.user.picture) {
+          pic.src = metaData.user.picture;
+          pic.classList.remove('hidden');
+        } else {
+          pic.classList.add('hidden');
+        }
+      }
+
+      // Filtros
       fillSelect('f-mes', meta.meses);
       fillSelect('f-loja', meta.lojas);
       fillSelect('f-captadora', meta.captadoras);
       fillSelect('f-origem', meta.origens);
 
-      // Load default
+      // Carregamento padrão
+      detailsOffset = 0;
       await loadOverview();
       await loadDetails(true);
 
@@ -286,8 +436,10 @@
       content.classList.remove('hidden');
 
     } catch (e) {
-      document.getElementById('error-message').textContent = e.message;
+      errorMsg.textContent = e.message;
       error.classList.remove('hidden');
+      // Se erro por auth, volta login box
+      document.getElementById('login-box').classList.remove('hidden');
     } finally {
       loading.classList.add('hidden');
     }
@@ -296,6 +448,7 @@
   function fillSelect(id, items) {
     const el = document.getElementById(id);
     el.innerHTML = '';
+
     const optAll = document.createElement('option');
     optAll.value = 'todas';
     optAll.textContent = 'TODAS';
@@ -326,26 +479,106 @@
     await loadDetails(true);
   }
 
+  // ==========================
+  // OVERVIEW + RANKINGS
+  // ==========================
   async function loadOverview() {
     const p = qs();
     const data = await fetchJSON(`${APPS_SCRIPT_URL}?action=overview&${p.toString()}`);
+    currentOverview = data;
 
     // KPIs
     document.getElementById('kpi-bruto').textContent = formatBRL(data.kpis.totalBruto);
     document.getElementById('kpi-liquido').textContent = formatBRL(data.kpis.totalLiquido);
 
     document.getElementById('kpi-delta').textContent = formatBRL(data.kpis.deltaBrutoLiquido);
-    document.getElementById('kpi-delta').className = `kpi-value ${Number(data.kpis.deltaBrutoLiquido) >= 0 ? 'text-gray-900' : 'text-red-600'}`;
+    document.getElementById('kpi-delta').className =
+      `kpi-value ${Number(data.kpis.deltaBrutoLiquido) >= 0 ? 'text-gray-900' : 'text-red-600'}`;
 
-    document.getElementById('kpi-pct').textContent = formatPct(data.kpis.pctLiquidoSobreBruto);
+    document.getElementById('kpi-pct').textContent = formatPctRatio(data.kpis.pctLiquidoSobreBruto);
 
     // Charts
     renderChartMes(data.charts.porMes);
     renderChartOrigem(data.charts.porOrigem);
-    renderChartTop(data.charts.topCaptadoras);
+    renderChartTop(data.charts.topCaptadoras); // com drilldown
     renderChartLoja(data.charts.porLoja);
+
+    // Rankings
+    renderRankings();
   }
 
+  function setRankingTab(tab) {
+    rankingTab = tab;
+
+    const btnMes = document.getElementById('tab-mes');
+    const btnGeral = document.getElementById('tab-geral');
+
+    if (tab === 'mes') {
+      btnMes.classList.add('btn-primary');
+      btnGeral.classList.remove('btn-primary');
+    } else {
+      btnGeral.classList.add('btn-primary');
+      btnMes.classList.remove('btn-primary');
+    }
+
+    renderRankings();
+  }
+
+  function renderRankings() {
+    const tbody = document.getElementById('rankingBody');
+    const info = document.getElementById('rankingInfo');
+    tbody.innerHTML = '';
+
+    if (!currentOverview || !currentOverview.rankings) {
+      info.textContent = 'Sem dados de ranking.';
+      return;
+    }
+
+    const rows = (rankingTab === 'mes')
+      ? (currentOverview.rankings.rankingMes || [])
+      : (currentOverview.rankings.rankingGeral || []);
+
+    info.textContent = (rankingTab === 'mes')
+      ? `Ranking do mês: ${currentOverview.rankings.mes}`
+      : `Ranking geral (independente do mês; respeita demais filtros).`;
+
+    rows.forEach((r, idx) => {
+      const bruto = Number(r.total_valor_bruto || 0);
+      const liquido = Number(r.total_valor_liquido || 0);
+      const pct = bruto > 0 ? (liquido / bruto) : 0;
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td class="font-extrabold">${idx + 1}</td>
+        <td class="font-extrabold text-gray-900">
+          <a href="#" class="link" onclick="drilldownCaptadora('${escapeJsString(r.label)}'); return false;">
+            ${escapeHtml(r.label)}
+          </a>
+        </td>
+        <td class="font-bold">${formatBRL(bruto)}</td>
+        <td class="font-bold">${formatBRL(liquido)}</td>
+        <td>${(pct * 100).toFixed(0)}%</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  async function drilldownCaptadora(nome) {
+    // seta filtro captadora e aplica
+    const sel = document.getElementById('f-captadora');
+    sel.value = nome;
+
+    detailsOffset = 0;
+    await loadOverview();
+    await loadDetails(true);
+
+    // rola até o detalhe
+    document.getElementById('detailsBody').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  // ==========================
+  // DETAILS
+  // ==========================
   async function loadDetails(reset=false) {
     const p = qs();
     p.set('limit', detailsLimit);
@@ -390,6 +623,9 @@
     loadDetails();
   }
 
+  // ==========================
+  // CHARTS
+  // ==========================
   function renderChartMes(rows) {
     const labels = (rows || []).map(r => r.label);
     const bruto = (rows || []).map(r => Number(r.total_valor_bruto || 0));
@@ -432,7 +668,18 @@
     chartTop = new Chart(ctx, {
       type: 'bar',
       data: { labels, datasets: [{ label:'Bruto', data: bruto }] },
-      options: { responsive:true, maintainAspectRatio:false, indexAxis:'y', scales:{ x:{ beginAtZero:true } } }
+      options: {
+        responsive:true,
+        maintainAspectRatio:false,
+        indexAxis:'y',
+        scales:{ x:{ beginAtZero:true } },
+        onClick: async (evt, elements) => {
+          if (!elements || !elements.length) return;
+          const idx = elements[0].index;
+          const captadora = labels[idx];
+          await drilldownCaptadora(captadora);
+        }
+      }
     });
   }
 
@@ -450,6 +697,77 @@
     });
   }
 
+  // ==========================
+  // EXPORTS (CSV/PDF)
+  // ==========================
+  async function exportCSV() {
+    // Busca até 1000 linhas do filtro atual (ajuste se precisar)
+    const p = qs();
+    p.set('limit', 1000);
+    p.set('offset', 0);
+
+    const data = await fetchJSON(`${APPS_SCRIPT_URL}?action=details&${p.toString()}`);
+    const rows = data.page.rows || [];
+
+    const headers = ["captadora","loja","mes","data","cliente","origem","consultor","valor_bruto","valor_liquido","detalhes"];
+    const lines = [headers.join(",")];
+
+    rows.forEach(r => {
+      const line = headers.map(h => {
+        const v = (r[h] ?? "");
+        const s = String(v).replaceAll('"','""');
+        return `"${s}"`;
+      }).join(",");
+      lines.push(line);
+    });
+
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `captacao_export_${new Date().toISOString().slice(0,10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function exportPDF() {
+    const p = qs();
+    p.set('limit', 500);
+    p.set('offset', 0);
+
+    const data = await fetchJSON(`${APPS_SCRIPT_URL}?action=details&${p.toString()}`);
+    const rows = data.page.rows || [];
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: "landscape" });
+
+    doc.setFontSize(14);
+    doc.text("Relatório Executivo - Captação (Filtro Atual)", 14, 14);
+
+    doc.setFontSize(10);
+    doc.text(`Gerado em: ${new Date().toLocaleString('pt-BR')}`, 14, 20);
+
+    const head = [["Captadora","Loja","Mês","Data","Cliente","Origem","Consultor","Bruto","Líquido","Detalhes"]];
+    const body = rows.map(r => [
+      r.captadora, r.loja, r.mes, r.data, r.cliente, r.origem, r.consultor,
+      formatBRL(r.valor_bruto), formatBRL(r.valor_liquido), r.detalhes
+    ]);
+
+    doc.autoTable({
+      head, body,
+      startY: 26,
+      styles: { fontSize: 8, cellPadding: 2 },
+      headStyles: { fillColor: [17, 24, 39] },
+      columnStyles: { 7: { halign: "right" }, 8: { halign: "right" } }
+    });
+
+    doc.save(`captacao_export_${new Date().toISOString().slice(0,10)}.pdf`);
+  }
+
+  // ==========================
+  // UTIL
+  // ==========================
   function escapeHtml(s) {
     return String(s ?? '')
       .replaceAll('&','&amp;')
@@ -459,7 +777,21 @@
       .replaceAll("'","&#039;");
   }
 
-  document.addEventListener('DOMContentLoaded', init);
+  // Para injetar string em onclick sem quebrar aspas
+  function escapeJsString(s) {
+    return String(s ?? '').replaceAll('\\', '\\\\').replaceAll("'", "\\'");
+  }
+
+  // Ao abrir a página, NÃO carrega dados sem login.
+  // Apenas verifica URL e mostra aviso se faltando.
+  document.addEventListener('DOMContentLoaded', () => {
+    const urlAlert = document.getElementById('url-alert');
+    if (!APPS_SCRIPT_URL || APPS_SCRIPT_URL.includes('COLE_A_URL')) {
+      urlAlert.classList.remove('hidden');
+    } else {
+      urlAlert.classList.add('hidden');
+    }
+  });
 </script>
 </body>
 </html>
