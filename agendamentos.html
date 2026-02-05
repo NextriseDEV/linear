@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard RD Station - Loja Indianopolis</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+    body { font-family: 'Inter', sans-serif; background:#f3f4f6; }
+    .card{background:#fff;border-radius:0.75rem;padding:1.5rem;box-shadow:0 4px 6px -1px rgba(0,0,0,.1);}
+    .kpi-value{font-size:2.5rem;font-weight:800;color:#111827;}
+    .kpi-title{font-size:.75rem;font-weight:700;color:#4b5563;text-transform:uppercase;}
+    table{width:100%; border-collapse: collapse;}
+    th{background: #f9fafb; font-size: 0.7rem; color: #6b7280; padding: 0.75rem; text-align: left; text-transform: uppercase;}
+    td{padding: 0.75rem; border-bottom: 1px solid #e5e7eb; font-size: 0.85rem;}
+  </style>
+</head>
+
+<body class="p-4 md:p-8">
+  <div class="max-w-7xl mx-auto">
+    <header class="mb-8 flex justify-between items-end">
+      <div>
+        <h1 class="text-3xl font-extrabold text-gray-900">Agenda RD Station</h1>
+        <p class="text-gray-500">Filtro: Loja Indianopolis ou Sem Loja Definitiva</p>
+      </div>
+      <div class="flex gap-4">
+          <input type="date" id="filtro-periodo" class="p-2 border rounded-lg font-semibold">
+          <button onclick="loadData()" class="bg-black text-white px-6 py-2 rounded-lg font-bold">Atualizar</button>
+      </div>
+    </header>
+
+    <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div class="card border-t-4 border-blue-500">
+        <div class="kpi-title">Agendados Hoje</div>
+        <div id="card-hoje" class="kpi-value">0</div>
+      </div>
+      <div class="card border-t-4 border-green-500">
+        <div class="kpi-title">Agendados Amanhã</div>
+        <div id="card-amanha" class="kpi-value">0</div>
+      </div>
+      <div class="card border-t-4 border-purple-500">
+        <div class="kpi-title">Agendados na Semana</div>
+        <div id="card-semana" class="kpi-value">0</div>
+      </div>
+    </section>
+
+    <section class="card overflow-hidden">
+      <div class="overflow-x-auto">
+        <table>
+          <thead>
+            <tr>
+              <th>Responsável</th>
+              <th>Contato</th>
+              <th>Telefone</th>
+              <th>Empreendimento</th>
+              <th>Última Anotação</th>
+              <th>Agendamento</th>
+              <th>Vendedor</th>
+            </tr>
+          </thead>
+          <tbody id="tabela-corpo">
+            </tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const API_URL = 'https://script.google.com/macros/s/AKfycbzf-f0Ao17enSAPsKrLq_Y_IZfLiPEJHeVrk5hurwixurdEf-TiAa0THtMbAuBwq3slLg/exec';
+
+    async function loadData() {
+      const resp = await fetch(`${API_URL}?action=overview`);
+      const data = await resp.json();
+      
+      // Atualiza Cards
+      document.getElementById('card-hoje').innerText = data.kpis.hoje;
+      document.getElementById('card-amanha').innerText = data.kpis.amanha;
+      document.getElementById('card-semana').innerText = data.kpis.semana;
+
+      // Atualiza Tabela
+      const tbody = document.getElementById('tabela-corpo');
+      tbody.innerHTML = data.rows.map(row => `
+        <tr>
+          <td class="font-semibold">${row.responsavel}</td>
+          <td>${row.contato}<br><span class="text-xs text-gray-400">${row.fonte}</span></td>
+          <td>${row.telefone}</td>
+          <td><span class="px-2 py-1 bg-gray-100 rounded text-xs">${row.empreendimento || 'N/A'}</span></td>
+          <td class="max-w-xs truncate">${row.ultima_anotacao}</td>
+          <td><span class="font-bold">${row.data_agendamento}</span><br>${row.horario}</td>
+          <td>${row.vendedor}</td>
+        </tr>
+      `).join('');
+    }
+
+    window.onload = loadData;
+  </script>
+</body>
+</html>
