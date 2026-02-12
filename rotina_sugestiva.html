@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Sucesso das Captadoras</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        .active-glow {
+            box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+            border: 2px solid #3b82f6 !important;
+        }
+
+        .card-transition {
+            transition: all 0.3s ease;
+        }
+
+        .card-transition:hover {
+            transform: translateY(-5px);
+        }
+
+        .status-badge {
+            font-size: 0.75rem;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+            <div>
+                <h1 class="text-3xl font-bold text-slate-800">MAPA DE SUCESSO DAS CAPTADORAS</h1>
+                <p class="text-slate-500 font-medium italic">"Nenhum cliente esquecido = Mais vendas!"</p>
+            </div>
+            <div id="clock-container" class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 text-center min-w-[200px]">
+                <div id="current-time" class="text-2xl font-bold text-blue-600">00:00:00</div>
+                <div id="current-date" class="text-xs text-slate-400 uppercase tracking-widest">Carregando...</div>
+            </div>
+        </header>
+
+        <!-- Main Dashboard Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Timeline Column -->
+            <div class="lg:col-span-2 space-y-4">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-xl font-bold text-slate-700"><i class="fa-solid fa-calendar-day mr-2 text-blue-500"></i>Agenda Diária</h2>
+                    <span class="text-sm bg-blue-100 text-blue-700 px-3 py-1 rounded-full font-semibold">Rotina Flexível</span>
+                </div>
+
+                <div id="timeline" class="space-y-4">
+                    <!-- Bloco de Ouro -->
+                    <div class="time-block bg-white p-5 rounded-2xl border-l-8 border-yellow-400 shadow-sm card-transition border border-slate-100" data-start="09:00" data-end="10:30">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="text-sm font-bold text-yellow-600 uppercase">09:00 - 10:30</span>
+                                <h3 class="text-lg font-bold text-slate-800">Bloco de Ouro: Novos Leads</h3>
+                                <p class="text-slate-600 text-sm mt-1">Falar com quem chegou agora (Meta/Google). Lead novo não espera!</p>
+                            </div>
+                            <div class="bg-yellow-50 p-3 rounded-xl"><i class="fa-solid fa-fish-arrow-up text-yellow-500 text-xl"></i></div>
+                        </div>
+                        <div class="mt-3 flex gap-2">
+                            <button onclick="toggleCheck(this)" class="text-xs border border-slate-200 px-3 py-1 rounded-lg hover:bg-slate-50">Atender Pendentes</button>
+                            <button onclick="toggleCheck(this)" class="text-xs border border-slate-200 px-3 py-1 rounded-lg hover:bg-slate-50">Limpar "Cofre" Inicial</button>
+                        </div>
+                    </div>
+
+                    <!-- Organizar Cofre -->
+                    <div class="time-block bg-white p-5 rounded-2xl border-l-8 border-blue-400 shadow-sm card-transition border border-slate-100" data-start="10:30" data-end="12:00">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="text-sm font-bold text-blue-600 uppercase">10:30 - 12:00</span>
+                                <h3 class="text-lg font-bold text-slate-800">Organizar o Cofre (CRM RD)</h3>
+                                <p class="text-slate-600 text-sm mt-1">Lançar leads do Whats e da rua no CRM. Deixar a casa em ordem.</p>
+                            </div>
+                            <div class="bg-blue-50 p-3 rounded-xl"><i class="fa-solid fa-vault text-blue-500 text-xl"></i></div>
+                        </div>
+                    </div>
+
+                    <!-- Almoço -->
+                    <div class="time-block bg-white p-5 rounded-2xl border-l-8 border-slate-400 shadow-sm card-transition border border-slate-100" data-start="12:00" data-end="14:00">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="text-sm font-bold text-slate-500 uppercase">12:00 - 14:00</span>
+                                <h3 class="text-lg font-bold text-slate-800">Almoço Rotativo</h3>
+                                <p class="text-slate-600 text-sm mt-1">Equipe se divide para nunca deixar o CRM sozinho.</p>
+                            </div>
+                            <div class="bg-slate-50 p-3 rounded-xl"><i class="fa-solid fa-utensils text-slate-400 text-xl"></i></div>
+                        </div>
+                    </div>
+
+                    <!-- Lembrar Clientes -->
+                    <div class="time-block bg-white p-5 rounded-2xl border-l-8 border-orange-400 shadow-sm card-transition border border-slate-100" data-start="14:00" data-end="16:00">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="text-sm font-bold text-orange-600 uppercase">14:00 - 16:00</span>
+                                <h3 class="text-lg font-bold text-slate-800">Lembrar os Clientes (Follow-up)</h3>
+                                <p class="text-slate-600 text-sm mt-1">Falar com quem já está em contato. Cobrar orçamentos e tirar dúvidas.</p>
+                            </div>
+                            <div class="bg-orange-50 p-3 rounded-xl"><i class="fa-solid fa-phone-volume text-orange-500 text-xl"></i></div>
+                        </div>
+                    </div>
+
+                    <!-- Operação Resgate -->
+                    <div class="time-block bg-white p-5 rounded-2xl border-l-8 border-purple-400 shadow-sm card-transition border border-slate-100" data-start="16:00" data-end="17:30">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="text-sm font-bold text-purple-600 uppercase">16:00 - 17:30</span>
+                                <h3 class="text-lg font-bold text-slate-800">Operação Resgate</h3>
+                                <p class="text-slate-600 text-sm mt-1">Mandar Vouchers para quem sumiu. Tratar listas de prospecção externa.</p>
+                            </div>
+                            <div class="bg-purple-50 p-3 rounded-xl"><i class="fa-solid fa-gift text-purple-500 text-xl"></i></div>
+                        </div>
+                    </div>
+
+                    <!-- Fechamento -->
+                    <div class="time-block bg-white p-5 rounded-2xl border-l-8 border-cyan-500 shadow-sm card-transition border border-slate-100" data-start="17:30" data-end="18:00">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <span class="text-sm font-bold text-cyan-600 uppercase">17:30 - 18:00</span>
+                                <h3 class="text-lg font-bold text-slate-800">Fechamento do Dia</h3>
+                                <p class="text-slate-600 text-sm mt-1">Conferir se todos os contatos do dia estão anotados no CRM.</p>
+                            </div>
+                            <div class="bg-cyan-50 p-3 rounded-xl"><i class="fa-solid fa-check-double text-cyan-500 text-xl"></i></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Stats and Extra Flow Column -->
+            <div class="space-y-8">
+                
+                <!-- Mapa de Sucesso (Stages) -->
+                <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-100">
+                    <h2 class="text-xl font-bold text-slate-800 mb-6 flex items-center">
+                        <i class="fa-solid fa-map-location-dot mr-2 text-green-500"></i> Estágios do Lead
+                    </h2>
+                    <div class="space-y-4">
+                        <div class="flex items-center p-3 bg-green-50 rounded-xl border border-green-100">
+                            <div class="w-10 h-10 bg-green-500 rounded-full flex items-center justify-center text-white font-bold mr-4">1</div>
+                            <div>
+                                <p class="font-bold text-green-800">NOVOS</p>
+                                <p class="text-xs text-green-600">Falar AGORA! (Até 10 min)</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center p-3 bg-yellow-50 rounded-xl border border-yellow-100">
+                            <div class="w-10 h-10 bg-yellow-400 rounded-full flex items-center justify-center text-white font-bold mr-4">2</div>
+                            <div>
+                                <p class="font-bold text-yellow-800">CONVERSA</p>
+                                <p class="text-xs text-yellow-600">Lembrar dele cada 2 dias</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center p-3 bg-red-50 rounded-xl border border-red-100">
+                            <div class="w-10 h-10 bg-red-500 rounded-full flex items-center justify-center text-white font-bold mr-4">3</div>
+                            <div>
+                                <p class="font-bold text-red-800">QUENTES</p>
+                                <p class="text-xs text-red-600">Visita marcada? Todo dia!</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center p-3 bg-purple-50 rounded-xl border border-purple-100">
+                            <div class="w-10 h-10 bg-purple-500 rounded-full flex items-center justify-center text-white font-bold mr-4">4</div>
+                            <div>
+                                <p class="font-bold text-purple-800">SUMIDOS</p>
+                                <p class="text-xs text-purple-600">Mandar presente ou Voucher</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- LINA Assistant Section -->
+                <div class="bg-gradient-to-br from-indigo-600 to-purple-700 p-6 rounded-3xl shadow-lg text-white">
+                    <div class="flex items-center mb-4">
+                        <div class="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center mr-3">
+                            <i class="fa-solid fa-robot text-xl"></i>
+                        </div>
+                        <h2 class="text-xl font-bold">LINA (Sua Assistente)</h2>
+                    </div>
+                    <p class="text-indigo-100 text-sm mb-4">A Lina trabalha para você enquanto você foca no fechamento:</p>
+                    <ul class="space-y-2 text-sm">
+                        <li class="flex items-center bg-white/10 p-2 rounded-lg"><i class="fa-solid fa-id-card mr-2 opacity-70"></i> Identifica quem enviou</li>
+                        <li class="flex items-center bg-white/10 p-2 rounded-lg"><i class="fa-solid fa-database mr-2 opacity-70"></i> Organiza os dados</li>
+                        <li class="flex items-center bg-white/10 p-2 rounded-lg"><i class="fa-solid fa-bell mr-2 opacity-70"></i> Avisa o CRM</li>
+                        <li class="flex items-center bg-white/10 p-2 rounded-lg"><i class="fa-solid fa-comment-dots mr-2 opacity-70"></i> Responde o Cliente</li>
+                    </ul>
+                    <div class="mt-6 p-3 bg-white/20 rounded-xl border border-white/30 text-center text-xs">
+                        <strong>VANTAGEM:</strong> Você não perde tempo digitando e o cliente não fica esperando!
+                    </div>
+                </div>
+
+                <!-- Saturday Notice -->
+                <div class="bg-slate-100 p-4 rounded-2xl border-2 border-dashed border-slate-300">
+                    <h3 class="font-bold text-slate-700 uppercase text-xs mb-1">Sábado: Revisão</h3>
+                    <p class="text-xs text-slate-500">Foco em confirmar visitas e organizar a próxima segunda-feira.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateClock() {
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString('pt-BR');
+            const dateStr = now.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
+            
+            document.getElementById('current-time').innerText = timeStr;
+            document.getElementById('current-date').innerText = dateStr;
+
+            updateActiveBlock(now);
+        }
+
+        function updateActiveBlock(now) {
+            const hours = now.getHours();
+            const minutes = now.getMinutes();
+            const currentTimeValue = hours * 60 + minutes;
+
+            document.querySelectorAll('.time-block').forEach(block => {
+                const start = block.dataset.start.split(':');
+                const end = block.dataset.end.split(':');
+                
+                const startVal = parseInt(start[0]) * 60 + parseInt(start[1]);
+                const endVal = parseInt(end[0]) * 60 + parseInt(end[1]);
+
+                if (currentTimeValue >= startVal && currentTimeValue < endVal) {
+                    block.classList.add('active-glow');
+                    block.classList.add('scale-[1.02]');
+                } else {
+                    block.classList.remove('active-glow');
+                    block.classList.remove('scale-[1.02]');
+                }
+            });
+        }
+
+        function toggleCheck(btn) {
+            if (btn.classList.contains('bg-green-100')) {
+                btn.classList.remove('bg-green-100', 'text-green-700', 'border-green-200');
+                btn.innerHTML = btn.innerText;
+            } else {
+                btn.classList.add('bg-green-100', 'text-green-700', 'border-green-200');
+                btn.innerHTML = '<i class="fa-solid fa-check mr-1"></i> Feito';
+            }
+        }
+
+        setInterval(updateClock, 1000);
+        updateClock();
+    </script>
+</body>
+</html>
