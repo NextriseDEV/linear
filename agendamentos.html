@@ -1,153 +1,280 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Dashboard RD Station - Loja Indianopolis</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
-    body { font-family: 'Inter', sans-serif; background:#f3f4f6; }
-    .card{background:#fff;border-radius:0.75rem;padding:1.5rem;box-shadow:0 4px 6px -1px rgba(0,0,0,.1);}
-    .kpi-value{font-size:2.5rem;font-weight:800;color:#111827;}
-    .kpi-title{font-size:.75rem;font-weight:700;color:#4b5563;text-transform:uppercase;}
-    table{width:100%; border-collapse: collapse;}
-    th{background: #f9fafb; font-size: 0.7rem; color: #6b7280; padding: 0.75rem; text-align: left; text-transform: uppercase;}
-    td{padding: 0.75rem; border-bottom: 1px solid #e5e7eb; font-size: 0.85rem;}
-    .loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); z-index: 50; justify-content: center; align-items: center; font-weight: bold; }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Linear | Dashboard de Agendamentos</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+        
+        :root {
+            --black: #0a0a0a;
+            --gold: #c5a059;
+            --gray-dark: #1a1a1a;
+            --gray-light: #2d2d2d;
+            --border: rgba(197, 160, 89, 0.2);
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background: var(--black); 
+            color: #e5e7eb;
+        }
+
+        .card-kpi {
+            background: var(--gray-dark);
+            border: 1px solid var(--border);
+            border-top: 4px solid var(--gold);
+            border-radius: 1rem;
+            padding: 1.5rem;
+            transition: transform 0.3s ease;
+        }
+
+        .card-kpi:hover {
+            transform: translateY(-5px);
+            border-color: var(--gold);
+        }
+
+        .kpi-value {
+            font-size: 2.5rem;
+            font-weight: 800;
+            color: var(--white);
+            line-height: 1;
+            margin-top: 0.5rem;
+        }
+
+        .kpi-title {
+            font-size: .7rem;
+            font-weight: 700;
+            color: var(--gold);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+        }
+
+        /* Estilização da Tabela */
+        .table-container {
+            background: var(--gray-dark);
+            border-radius: 1.25rem;
+            border: 1px solid var(--border);
+            overflow: hidden;
+        }
+
+        table { width: 100%; border-collapse: separate; border-spacing: 0; }
+        
+        th {
+            background: var(--gray-light);
+            font-size: 0.65rem;
+            color: var(--gold);
+            padding: 1rem;
+            text-align: left;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 800;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.85rem;
+            color: #ccc;
+        }
+
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: rgba(197, 160, 89, 0.03); }
+
+        /* Inputs e Filtros */
+        .input-dark {
+            background: var(--gray-dark);
+            border: 1px solid var(--gray-light);
+            color: white;
+            padding: 0.6rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .input-dark:focus {
+            border-color: var(--gold);
+            box-shadow: 0 0 0 2px rgba(197, 160, 89, 0.2);
+        }
+
+        /* Loading Customizado */
+        .loading-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85);
+            backdrop-filter: blur(5px);
+            z-index: 100;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid var(--gray-light);
+            border-top: 4px solid var(--gold);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+        /* Mobile Adjustments */
+        @media (max-width: 768px) {
+            .kpi-value { font-size: 2rem; }
+            td, th { padding: 0.75rem 0.5rem; font-size: 0.75rem; }
+            .hide-mobile { display: none; }
+        }
+    </style>
 </head>
 
-<body class="p-4 md:p-8">
-  <div id="loader" class="loading-overlay">Carregando dados...</div>
+<body class="p-4 md:p-10">
+    <div id="loader" class="loading-overlay">
+        <div class="spinner"></div>
+        <p class="text-gold font-bold tracking-widest text-xs uppercase">Sincronizando Agenda...</p>
+    </div>
 
-  <div class="max-w-7xl mx-auto">
-    <header class="mb-8 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-      <div>
-        <h1 class="text-3xl font-extrabold text-gray-900">Agenda RD Station</h1>
-        <p class="text-gray-500">Filtro: Loja Indianopolis ou Sem Loja Definitiva</p>
-      </div>
-      
-      <div class="flex flex-wrap gap-3 bg-white p-4 rounded-xl shadow-sm border border-gray-200">
-          <div class="flex flex-col">
-            <label class="text-[10px] font-bold uppercase text-gray-400">Início</label>
-            <input type="date" id="data-inicio" class="border rounded p-1 text-sm font-semibold">
-          </div>
-          <div class="flex flex-col">
-            <label class="text-[10px] font-bold uppercase text-gray-400">Fim</label>
-            <input type="date" id="data-fim" class="border rounded p-1 text-sm font-semibold">
-          </div>
-          <button onclick="loadData()" class="bg-black text-white px-4 py-2 rounded-lg font-bold self-end hover:bg-gray-800 transition-colors">Filtrar Período</button>
-      </div>
-    </header>
+    <div class="max-w-7xl mx-auto">
+        <header class="mb-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+            <div>
+                <h1 class="text-4xl font-extrabold text-white tracking-tight">Agendamentos <span class="text-[var(--gold)]">RD Station</span></h1>
+                <p class="text-gray-500 font-medium">Unidade Indianópolis-Leads</p>
+            </div>
+            
+            <div class="flex flex-wrap items-center gap-3 bg-[var(--gray-dark)] p-3 rounded-2xl border border-[var(--border)] w-full lg:w-auto">
+                <div class="flex flex-col flex-1 min-w-[120px]">
+                    <label class="text-[9px] font-bold uppercase text-gold mb-1 ml-1">Início</label>
+                    <input type="date" id="data-inicio" class="input-dark">
+                </div>
+                <div class="flex flex-col flex-1 min-w-[120px]">
+                    <label class="text-[9px] font-bold uppercase text-gold mb-1 ml-1">Fim</label>
+                    <input type="date" id="data-fim" class="input-dark">
+                </div>
+                <button onclick="loadData()" class="bg-[var(--gold)] text-black px-6 py-2.5 rounded-xl font-bold hover:brightness-110 transition-all self-end h-[42px] uppercase text-xs tracking-wider">
+                    Filtrar
+                </button>
+            </div>
+        </header>
 
-    <section class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-      <div class="card border-t-4 border-blue-500">
-        <div class="kpi-title">Agendados Hoje</div>
-        <div id="card-hoje" class="kpi-value">0</div>
-      </div>
-      <div class="card border-t-4 border-green-500">
-        <div class="kpi-title">Agendados Amanhã</div>
-        <div id="card-amanha" class="kpi-value">0</div>
-      </div>
-      <div class="card border-t-4 border-purple-500">
-        <div class="kpi-title">Agendados na Semana</div>
-        <div id="card-semana" class="kpi-value">0</div>
-      </div>
-    </section>
+        <section class="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-10">
+            <div class="card-kpi">
+                <div class="kpi-title">Hoje</div>
+                <div id="card-hoje" class="kpi-value">0</div>
+            </div>
+            <div class="card-kpi" style="border-top-color: #fff;">
+                <div class="kpi-title" style="color: #fff;">Amanhã</div>
+                <div id="card-amanha" class="kpi-value">0</div>
+            </div>
+            <div class="card-kpi">
+                <div class="kpi-title">Esta Semana</div>
+                <div id="card-semana" class="kpi-value">0</div>
+            </div>
+        </section>
 
-    <section class="card overflow-hidden">
-      <div class="mb-4">
-        <input type="text" id="campo-busca" onkeyup="filtrarTabela()" placeholder="Buscar por contato, responsável ou empreendimento..." class="w-full p-3 border rounded-lg shadow-sm focus:ring-2 focus:ring-black outline-none">
-      </div>
-      <div class="overflow-x-auto">
-        <table id="tabela-dados">
-          <thead>
-            <tr>
-              <th>Responsável</th>
-              <th>Contato</th>
-              <th>Telefone</th>
-              <th>Empreendimento</th>
-              <th>Última Anotação</th>
-              <th>Agendamento</th>
-              <th>Vendedor</th>
-            </tr>
-          </thead>
-          <tbody id="tabela-corpo">
-            </tbody>
-        </table>
-      </div>
-    </section>
-  </div>
+        <section class="table-container shadow-2xl">
+            <div class="p-5 border-bottom border-[var(--border)] flex flex-col md:flex-row gap-4 justify-between bg-[var(--gray-light)]/30">
+                <div class="relative w-full md:w-96">
+                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm"></i>
+                    <input type="text" id="campo-busca" onkeyup="filtrarTabela()" placeholder="Buscar contato, responsável ou empreendimento..." 
+                           class="w-full pl-10 pr-4 py-2.5 bg-[var(--black)] border border-[var(--border)] rounded-xl text-sm focus:border-[var(--gold)] outline-none transition-all">
+                </div>
+                <div class="flex items-center gap-2 text-xs text-gray-500 font-bold uppercase tracking-widest">
+                    <span class="w-2 h-2 rounded-full bg-gold animate-pulse"></span> Sistema em Tempo Real
+                </div>
+            </div>
 
-  <script>
-    // Substitua pela URL da sua nova implantação
-    const API_URL = 'https://script.google.com/macros/s/AKfycbzf-f0Ao17enSAPsKrLq_Y_IZfLiPEJHeVrk5hurwixurdEf-TiAa0THtMbAuBwq3slLg/exec';
-    let dadosOriginais = [];
+            <div class="overflow-x-auto">
+                <table id="tabela-dados">
+                    <thead>
+                        <tr>
+                            <th>Responsável</th>
+                            <th>Contato</th>
+                            <th class="hide-mobile">Telefone</th>
+                            <th>Empreendimento</th>
+                            <th class="hide-mobile">Anotação</th>
+                            <th>Agendamento</th>
+                            <th class="hide-mobile">Vendedor</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabela-corpo">
+                        </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
 
-    async function loadData() {
-      const loader = document.getElementById('loader');
-      const dInicio = document.getElementById('data-inicio').value;
-      const dFim = document.getElementById('data-fim').value;
-      
-      loader.style.display = 'flex';
+    <script>
+        const API_URL = 'https://script.google.com/macros/s/AKfycbzf-f0Ao17enSAPsKrLq_Y_IZfLiPEJHeVrk5hurwixurdEf-TiAa0THtMbAuBwq3slLg/exec';
+        let dadosOriginais = [];
 
-      try {
-        const queryParams = `?action=overview&inicio=${dInicio}&fim=${dFim}`;
-        const resp = await fetch(`${API_URL}${queryParams}`);
-        const data = await resp.json();
-        
-        dadosOriginais = data.rows; // Guarda para o filtro de busca
-        
-        // Atualiza Cards
-        document.getElementById('card-hoje').innerText = data.kpis.hoje;
-        document.getElementById('card-amanha').innerText = data.kpis.amanha;
-        document.getElementById('card-semana').innerText = data.kpis.semana;
+        async function loadData() {
+            const loader = document.getElementById('loader');
+            const dInicio = document.getElementById('data-inicio').value;
+            const dFim = document.getElementById('data-fim').value;
+            
+            loader.style.display = 'flex';
 
-        renderTable(dadosOriginais);
+            try {
+                const queryParams = `?action=overview&inicio=${dInicio}&fim=${dFim}`;
+                const resp = await fetch(`${API_URL}${queryParams}`);
+                const data = await resp.json();
+                
+                dadosOriginais = data.rows;
+                
+                document.getElementById('card-hoje').innerText = data.kpis.hoje;
+                document.getElementById('card-amanha').innerText = data.kpis.amanha;
+                document.getElementById('card-semana').innerText = data.kpis.semana;
 
-      } catch (e) {
-        console.error("Erro:", e);
-        alert("Erro ao carregar dados. Verifique a URL do Apps Script.");
-      } finally {
-        loader.style.display = 'none';
-      }
-    }
+                renderTable(dadosOriginais);
+            } catch (e) {
+                console.error("Erro:", e);
+                alert("Erro ao carregar dados da Linear.");
+            } finally {
+                loader.style.display = 'none';
+            }
+        }
 
-    function renderTable(rows) {
-      const tbody = document.getElementById('tabela-corpo');
-      tbody.innerHTML = rows.map(row => `
-        <tr>
-          <td class="font-semibold text-gray-700">${row.responsavel}</td>
-          <td>
-            <div class="font-bold">${row.contato}</div>
-            <span class="text-[10px] bg-blue-50 text-blue-600 px-1 rounded">${row.fonte}</span>
-          </td>
-          <td class="text-gray-600">${row.telefone}</td>
-          <td><span class="px-2 py-1 bg-gray-100 rounded text-xs font-medium">${row.empreendimento}</span></td>
-          <td class="max-w-xs truncate text-xs text-gray-500" title="${row.ultima_anotacao}">${row.ultima_anotacao}</td>
-          <td>
-            <div class="text-blue-700 font-extrabold">${row.data_agendamento}</div>
-            <div class="text-xs text-gray-400 font-medium">${row.horario}</div>
-          </td>
-          <td class="text-sm font-medium">${row.vendedor}</td>
-        </tr>
-      `).join('');
-    }
+        function renderTable(rows) {
+            const tbody = document.getElementById('tabela-corpo');
+            // Otimização de renderização usando DocumentFragment ou join direto
+            tbody.innerHTML = rows.map(row => `
+                <tr class="transition-colors">
+                    <td class="font-bold text-white">${row.responsavel}</td>
+                    <td>
+                        <div class="font-bold text-gray-200">${row.contato}</div>
+                        <span class="text-[9px] bg-[var(--gray-light)] text-[var(--gold)] px-1.5 py-0.5 rounded uppercase font-extrabold">${row.fonte}</span>
+                    </td>
+                    <td class="text-gray-400 hide-mobile">${row.telefone}</td>
+                    <td><span class="px-2 py-1 bg-[var(--black)] border border-[var(--border)] rounded text-[10px] font-bold text-gray-300 uppercase">${row.empreendimento}</span></td>
+                    <td class="max-w-xs truncate text-[11px] text-gray-500 hide-mobile" title="${row.ultima_anotacao}">${row.ultima_anotacao || '---'}</td>
+                    <td>
+                        <div class="text-[var(--gold)] font-extrabold">${row.data_agendamento}</div>
+                        <div class="text-[10px] text-gray-500 font-bold">${row.horario}</div>
+                    </td>
+                    <td class="text-xs font-semibold text-gray-300 hide-mobile">${row.vendedor}</td>
+                </tr>
+            `).join('');
+        }
 
-    // Filtro de busca local (sem recarregar)
-    function filtrarTabela() {
-      const termo = document.getElementById('campo-busca').value.toLowerCase();
-      const filtrados = dadosOriginais.filter(item => 
-        item.contato.toLowerCase().includes(termo) || 
-        item.responsavel.toLowerCase().includes(termo) || 
-        item.empreendimento.toLowerCase().includes(termo) ||
-        item.vendedor.toLowerCase().includes(termo)
-      );
-      renderTable(filtrados);
-    }
+        function filtrarTabela() {
+            const termo = document.getElementById('campo-busca').value.toLowerCase();
+            const filtrados = dadosOriginais.filter(item => 
+                item.contato.toLowerCase().includes(termo) || 
+                item.responsavel.toLowerCase().includes(termo) || 
+                item.empreendimento.toLowerCase().includes(termo) ||
+                item.vendedor.toLowerCase().includes(termo)
+            );
+            renderTable(filtrados);
+        }
 
-    window.onload = loadData;
-  </script>
+        window.onload = loadData;
+    </script>
 </body>
 </html>
