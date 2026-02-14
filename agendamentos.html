@@ -30,6 +30,7 @@
             border-radius: 1rem;
             padding: 1.5rem;
             transition: transform 0.3s ease;
+            position: relative;
         }
 
         .card-kpi:hover {
@@ -40,7 +41,7 @@
         .kpi-value {
             font-size: 2.5rem;
             font-weight: 800;
-            color: var(--white);
+            color: white;
             line-height: 1;
             margin-top: 0.5rem;
         }
@@ -51,6 +52,13 @@
             color: var(--gold);
             text-transform: uppercase;
             letter-spacing: 1.5px;
+        }
+
+        .secondary-value {
+            font-size: 0.75rem;
+            color: #888;
+            margin-top: 8px;
+            font-weight: 600;
         }
 
         /* Estilização da Tabela */
@@ -84,7 +92,6 @@
         tr:last-child td { border-bottom: none; }
         tr:hover td { background: rgba(197, 160, 89, 0.03); }
 
-        /* Inputs e Filtros */
         .input-dark {
             background: var(--gray-dark);
             border: 1px solid var(--gray-light);
@@ -96,12 +103,6 @@
             transition: all 0.3s;
         }
 
-        .input-dark:focus {
-            border-color: var(--gold);
-            box-shadow: 0 0 0 2px rgba(197, 160, 89, 0.2);
-        }
-
-        /* Loading Customizado */
         .loading-overlay {
             display: none;
             position: fixed;
@@ -115,22 +116,20 @@
         }
 
         .spinner {
-            width: 40px;
-            height: 40px;
+            width: 40px; height: 40px;
             border: 4px solid var(--gray-light);
             border-top: 4px solid var(--gold);
             border-radius: 50%;
             animation: spin 1s linear infinite;
-            margin-bottom: 1rem;
         }
 
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
 
-        /* Mobile Adjustments */
         @media (max-width: 768px) {
             .kpi-value { font-size: 2rem; }
-            td, th { padding: 0.75rem 0.5rem; font-size: 0.75rem; }
+            td, th { padding: 0.75rem 0.4rem; font-size: 0.7rem; }
             .hide-mobile { display: none; }
+            .vendedor-col { min-width: 80px; }
         }
     </style>
 </head>
@@ -138,14 +137,14 @@
 <body class="p-4 md:p-10">
     <div id="loader" class="loading-overlay">
         <div class="spinner"></div>
-        <p class="text-gold font-bold tracking-widest text-xs uppercase">Sincronizando Agenda...</p>
+        <p class="text-gold font-bold tracking-widest text-xs uppercase mt-4">Sincronizando Agenda...</p>
     </div>
 
     <div class="max-w-7xl mx-auto">
         <header class="mb-10 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
             <div>
-                <h1 class="text-4xl font-extrabold text-white tracking-tight">Agendamentos <span class="text-[var(--gold)]">RD Station</span></h1>
-                <p class="text-gray-500 font-medium">Unidade Indianópolis-Leads</p>
+                <h1 class="text-4xl font-extrabold text-white tracking-tight">Agendamentos <span class="text-[var(--gold)]">Linear</span></h1>
+                <p class="text-gray-500 font-medium">Painel Administrativo - Indianópolis</p>
             </div>
             
             <div class="flex flex-wrap items-center gap-3 bg-[var(--gray-dark)] p-3 rounded-2xl border border-[var(--border)] w-full lg:w-auto">
@@ -175,6 +174,7 @@
             <div class="card-kpi">
                 <div class="kpi-title">Esta Semana</div>
                 <div id="card-semana" class="kpi-value">0</div>
+                <div class="secondary-value">Total período: <span id="card-total" class="text-white">0</span></div>
             </div>
         </section>
 
@@ -182,11 +182,8 @@
             <div class="p-5 border-bottom border-[var(--border)] flex flex-col md:flex-row gap-4 justify-between bg-[var(--gray-light)]/30">
                 <div class="relative w-full md:w-96">
                     <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-sm"></i>
-                    <input type="text" id="campo-busca" onkeyup="filtrarTabela()" placeholder="Buscar contato, responsável ou empreendimento..." 
+                    <input type="text" id="campo-busca" onkeyup="filtrarTabela()" placeholder="Buscar contato, responsável ou vendedor..." 
                            class="w-full pl-10 pr-4 py-2.5 bg-[var(--black)] border border-[var(--border)] rounded-xl text-sm focus:border-[var(--gold)] outline-none transition-all">
-                </div>
-                <div class="flex items-center gap-2 text-xs text-gray-500 font-bold uppercase tracking-widest">
-                    <span class="w-2 h-2 rounded-full bg-gold animate-pulse"></span> Sistema em Tempo Real
                 </div>
             </div>
 
@@ -199,12 +196,11 @@
                             <th class="hide-mobile">Telefone</th>
                             <th>Empreendimento</th>
                             <th class="hide-mobile">Anotação</th>
-                            <th>Agendamento</th>
-                            <th class="hide-mobile">Vendedor</th>
+                            <th>Data</th>
+                            <th class="vendedor-col">Vendedor</th>
                         </tr>
                     </thead>
-                    <tbody id="tabela-corpo">
-                        </tbody>
+                    <tbody id="tabela-corpo"></tbody>
                 </table>
             </div>
         </section>
@@ -218,7 +214,6 @@
             const loader = document.getElementById('loader');
             const dInicio = document.getElementById('data-inicio').value;
             const dFim = document.getElementById('data-fim').value;
-            
             loader.style.display = 'flex';
 
             try {
@@ -231,11 +226,13 @@
                 document.getElementById('card-hoje').innerText = data.kpis.hoje;
                 document.getElementById('card-amanha').innerText = data.kpis.amanha;
                 document.getElementById('card-semana').innerText = data.kpis.semana;
+                // Atualiza o total do período
+                document.getElementById('card-total').innerText = data.rows.length;
 
                 renderTable(dadosOriginais);
             } catch (e) {
                 console.error("Erro:", e);
-                alert("Erro ao carregar dados da Linear.");
+                alert("Erro ao carregar dados.");
             } finally {
                 loader.style.display = 'none';
             }
@@ -243,22 +240,21 @@
 
         function renderTable(rows) {
             const tbody = document.getElementById('tabela-corpo');
-            // Otimização de renderização usando DocumentFragment ou join direto
             tbody.innerHTML = rows.map(row => `
-                <tr class="transition-colors">
-                    <td class="font-bold text-white">${row.responsavel}</td>
+                <tr>
+                    <td class="font-bold text-white text-[10px] md:text-sm">${row.responsavel}</td>
                     <td>
-                        <div class="font-bold text-gray-200">${row.contato}</div>
-                        <span class="text-[9px] bg-[var(--gray-light)] text-[var(--gold)] px-1.5 py-0.5 rounded uppercase font-extrabold">${row.fonte}</span>
+                        <div class="font-bold text-gray-200 text-[10px] md:text-sm">${row.contato}</div>
+                        <span class="text-[8px] md:text-[9px] bg-[var(--gray-light)] text-[var(--gold)] px-1 py-0.5 rounded uppercase font-extrabold">${row.fonte}</span>
                     </td>
                     <td class="text-gray-400 hide-mobile">${row.telefone}</td>
-                    <td><span class="px-2 py-1 bg-[var(--black)] border border-[var(--border)] rounded text-[10px] font-bold text-gray-300 uppercase">${row.empreendimento}</span></td>
-                    <td class="max-w-xs truncate text-[11px] text-gray-500 hide-mobile" title="${row.ultima_anotacao}">${row.ultima_anotacao || '---'}</td>
+                    <td><span class="px-1.5 py-0.5 bg-[var(--black)] border border-[var(--border)] rounded text-[9px] md:text-[10px] font-bold text-gray-300 uppercase">${row.empreendimento}</span></td>
+                    <td class="max-w-[150px] truncate text-[10px] text-gray-500 hide-mobile" title="${row.ultima_anotacao}">${row.ultima_anotacao || '---'}</td>
                     <td>
-                        <div class="text-[var(--gold)] font-extrabold">${row.data_agendamento}</div>
-                        <div class="text-[10px] text-gray-500 font-bold">${row.horario}</div>
+                        <div class="text-[var(--gold)] font-extrabold text-[10px] md:text-sm">${row.data_agendamento}</div>
+                        <div class="text-[9px] text-gray-500 font-bold">${row.horario}</div>
                     </td>
-                    <td class="text-xs font-semibold text-gray-300 hide-mobile">${row.vendedor}</td>
+                    <td class="text-[10px] md:text-xs font-semibold text-gray-300 vendedor-col">${row.vendedor}</td>
                 </tr>
             `).join('');
         }
@@ -268,10 +264,11 @@
             const filtrados = dadosOriginais.filter(item => 
                 item.contato.toLowerCase().includes(termo) || 
                 item.responsavel.toLowerCase().includes(termo) || 
-                item.empreendimento.toLowerCase().includes(termo) ||
                 item.vendedor.toLowerCase().includes(termo)
             );
             renderTable(filtrados);
+            // Atualiza o total filtrado no card
+            document.getElementById('card-total').innerText = filtrados.length;
         }
 
         window.onload = loadData;
