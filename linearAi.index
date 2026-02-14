@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linear - Ecossistema Digital</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        :root {
+            --black: #0a0a0a;
+            --gold: #c5a059;
+            --white: #ffffff;
+            --gray: #1a1a1a;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', sans-serif;
+            background-color: var(--black);
+            color: var(--white);
+            overflow-x: hidden;
+        }
+
+        /* Header e Animação Loop */
+        .hero-section {
+            height: 80vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle, #1a1a1a 0%, #0a0a0a 100%);
+            position: relative;
+            border-bottom: 1px solid rgba(197, 160, 89, 0.2);
+        }
+
+        .lina-animation {
+            width: 350px;
+            height: 350px;
+            border-radius: 50%;
+            border: 2px solid var(--gold);
+            box-shadow: 0 0 50px rgba(197, 160, 89, 0.3);
+            object-fit: cover;
+            /* O vídeo gerado acima deve ser colocado aqui */
+        }
+
+        /* Grid de Cards */
+        .container {
+            max-width: 1200px;
+            margin: -100px auto 50px;
+            padding: 20px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            position: relative;
+            z-index: 10;
+        }
+
+        .card {
+            background: var(--gray);
+            border: 1px solid #333;
+            padding: 30px;
+            border-radius: 15px;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            color: var(--white);
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .card:hover {
+            border-color: var(--gold);
+            transform: translateY(-10px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+
+        .card i {
+            color: var(--gold);
+            font-size: 2rem;
+            margin-bottom: 15px;
+        }
+
+        .card h3 {
+            margin: 10px 0;
+            font-size: 1.2rem;
+            color: var(--gold);
+        }
+
+        .card p {
+            font-size: 0.9rem;
+            color: #aaa;
+            line-height: 1.5;
+        }
+
+        /* Video Player Section */
+        .video-section {
+            padding: 80px 20px;
+            text-align: center;
+            background: var(--black);
+        }
+
+        .video-container {
+            max-width: 800px;
+            margin: 0 auto;
+            border: 4px solid var(--gray);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+        }
+
+        video {
+            width: 100%;
+            display: block;
+        }
+
+        .section-title {
+            color: var(--gold);
+            margin-bottom: 40px;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+
+    <section class="hero-section">
+        <div style="text-align: center;">
+            <video class="lina-animation" autoplay loop muted playsinline>
+                <source src="URL_DO_VIDEO_GERADO_ACIMA" type="video/mp4">
+            </video>
+            <h1 style="margin-top: 20px; font-weight: 300;">Ecossistema Digital <span style="color: var(--gold);">Linear</span></h1>
+        </div>
+    </section>
+
+    <div class="container">
+        <a href="https://nextrisedev.github.io/lina/" class="card" target="_blank">
+            <i class="fas fa-robot"></i>
+            <h3>Lina</h3>
+            <p>Construtor de mensagens inteligente para otimização de comunicação.</p>
+        </a>
+
+        <a href="https://nextrisedev.github.io/linear/agendamentos" class="card" target="_blank">
+            <i class="fas fa-calendar-alt"></i>
+            <h3>Agendamentos</h3>
+            <p>Gestão da semana - Unidade Loja Indianópolis.</p>
+        </a>
+
+        <a href="https://nextrisedev.github.io/linear/rotina_sugestiva.html" class="card" target="_blank">
+            <i class="fas fa-users"></i>
+            <h3>Time de Captação</h3>
+            <p>Rotinas sugestivas e processos operacionais da equipe.</p>
+        </a>
+
+        <a href="https://nextrisedev.github.io/linear/main.html" class="card" target="_blank">
+            <i class="fas fa-chart-line"></i>
+            <h3>Dashboard Executivo</h3>
+            <p>Visão consolidada: Bruto x Líquido (Módulo em construção).</p>
+        </a>
+    </div>
+
+    <section class="video-section">
+        <h2 class="section-title">Inovação em IA</h2>
+        <div class="video-container">
+            <video controls poster="Lina_Human.png">
+                <source src="https://nextrisedev.github.io/linear/assets/Cria%C3%A7%C3%A3o_de_V%C3%ADdeo_Animado_para_IA.mp4" type="video/mp4">
+                Seu navegador não suporta vídeos.
+            </video>
+        </div>
+    </section>
+
+    <footer style="text-align: center; padding: 40px; color: #444; font-size: 0.8rem;">
+        &copy; 2024 Linear AI Ecosystem - Sofisticação e Tecnologia.
+    </footer>
+
+</body>
+</html>
