@@ -126,7 +126,7 @@
     <section class="hero-section">
         <div style="text-align: center;">
             <video class="lina-animation" autoplay loop muted playsinline>
-                <source src="URL_DO_VIDEO_GERADO_ACIMA" type="video/mp4">
+                <source src="https://nextrisedev.github.io/linear/assets/Criação_de_Homepage_para_Ecossistema_Digital.mp4" type="video/mp4">
             </video>
             <h1 style="margin-top: 20px; font-weight: 300;">Ecossistema Digital <span style="color: var(--gold);">Linear</span></h1>
         </div>
